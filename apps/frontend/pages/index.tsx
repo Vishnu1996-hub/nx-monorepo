@@ -1,11 +1,11 @@
+import { useEffect, useState } from 'react';
 import styles from './index.module.css';
 
 export function Index() {
-  /*
-   * Replace the elements below with your own.
-   *
-   * Note: The corresponding styles are in the ./index.css file.
-   */
+  const [resp,setResp] = useState<any>([]);
+  useEffect(() => {
+    fetch('http://localhost:3333/api').then((data) => data.json()).then(setResp).catch((error) => console.log(error));
+  },[]);
   return (
     <div className={styles.page}>
       <div className="wrapper">
@@ -15,6 +15,7 @@ export function Index() {
               <span> Hello there, </span>
               Welcome frontend 👋
             </h1>
+            <h3>{resp.message}</h3>
           </div>
 
           <div id="hero" className="rounded">

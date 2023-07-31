@@ -1,21 +1,14 @@
 import express from 'express';
 import * as path from 'path';
 import cors from 'cors';
-import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
+import './workers/sendEmailWorker';
+import { WorkflowClient } from '@temporalio/client';
+import { sendEmailWorkflow } from './workflows/sendEmailWorkflow';
+// import sendEmail from './activities/sendEmail';
 
 const app = express();
 dotenv.config();
-
-const mailService = process.env.MAIL_SERVICE || '';
-const mailUser = process.env.MAIL_USER || '';
-const mailPass = process.env.MAIL_PASS || '';
-
-// Nodemailer setup
-const transporter = nodemailer.createTransport({
-  service: mailService,
-  auth: {user: mailUser,pass: mailPass}
-});
 
 // Express.js middleware setup
 app.use(cors());
@@ -32,20 +25,23 @@ app.post('/api/send-email', async (req, res) => {
   try {
     const { to, subject, text } = req.body;
 
-    const mailOptions = {
-      from: 'vishnu28496@gmail.com',
-      to,
-      subject,
-      text
-    };
-
-    if(!mailService || !mailUser || !mailPass){
-      res.json({ message: 'Something is wrong from email environment!' });
+    if (!to || !subject || !text) {
+      return res.status(400).json({ message: 'Missing required parameters' });
     }
-    await transporter.sendMail(mailOptions);
-    res.json({ message: 'Email sent successfully!' });
+
+    const client = new WorkflowClient();
+
+    // Start the Temporal workflow asynchronously
+    await client.execute(sendEmailWorkflow,{...req.body});
+    return res.status(200).json({ message: 'Email sending initiated' });
+
+    // const result = await sendEmail(to,subject,text);
+    // if(result.error) {
+    //   res.json({message: result.error});  
+    // }
+    // res.json({ message: 'Email sent successfully!' });
   } catch (error) {
-    res.status(500).json({ error: 'An error occurred while sending the email.', 'msg': error });
+    res.status(500).json({ error: error.message });
   }
 });
 
